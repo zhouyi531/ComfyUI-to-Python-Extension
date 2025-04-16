@@ -72,7 +72,7 @@ def add_extra_model_paths() -> None:
         print(
             "Could not import load_extra_path_config from main.py. Looking in utils.extra_config instead."
         )
-        from utils.extra_config import load_extra_path_config
+        from utilss.extra_config import load_extra_path_config
 
     extra_model_paths = find_path("extra_model_paths.yaml")
 

@@ -50,7 +50,8 @@ class FileHandler:
             FileNotFoundError: If the file is not found, it lists all JSON files in the directory of the file path.
             ValueError: If the file is not a valid JSON.
         """
-
+        file_path = os.path.abspath(file_path)
+        print(f"file_path: {file_path}")
         if hasattr(file_path, "read"):
             return json.load(file_path)
         with open(file_path, "r", encoding="utf-8") as file:
@@ -142,26 +143,36 @@ class LoadOrderDeterminer:
         self.load_order.append((key, self.data[key], self.is_special_function))
 
     def _load_special_functions_first(self) -> None:
-        """Load functions without dependencies, loaderes, and encoders first.
+        """Load functions without dependencies, loaders, and encoders first.
 
         Returns:
             None
         """
         # Iterate over each key in the data to check for loader keys.
         for key in self.data:
-            class_def = self.node_class_mappings[self.data[key]["class_type"]]()
-            # Check if the class is a loader class or meets specific conditions.
-            if (
-                class_def.CATEGORY == "loaders"
-                or class_def.FUNCTION in ["encode"]
-                or not any(
-                    isinstance(val, list) for val in self.data[key]["inputs"].values()
-                )
-            ):
-                self.is_special_function = True
-                # If the key has not been visited, perform a DFS from that key.
-                if key not in self.visited:
-                    self._dfs(key)
+            node_data = self.data[key]
+            print(f"[DEBUG] Processing node key: {key}, type: {type(node_data)}, value: {node_data}")
+            try:
+                if not isinstance(node_data, dict):
+                    print(f"[ERROR] Node '{key}' data is expected to be a dict, but got {type(node_data)} with value: {node_data}")
+                else:
+                    print(f"[DEBUG] Node '{key}' class_type: {node_data.get('class_type')}")
+                class_type = node_data["class_type"]  # 错误可能在这里发生
+                class_def = self.node_class_mappings[class_type]()
+                # Check if the class is a loader class or meets specific conditions.
+                if (
+                    class_def.CATEGORY == "loaders"
+                    or class_def.FUNCTION in ["encode"]
+                    or not any(
+                        isinstance(val, list) for val in node_data["inputs"].values()
+                    )
+                ):
+                    self.is_special_function = True
+                    if key not in self.visited:
+                        self._dfs(key)
+            except Exception as e:
+                print(f"[ERROR] Exception processing node '{key}' with data: {node_data}. Exception: {e}")
+                raise
 
 
 class CodeGenerator:
